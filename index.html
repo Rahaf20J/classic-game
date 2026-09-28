@@ -132,23 +132,25 @@
     .game-message {
       position: absolute;
       z-index: 5;
-      top: 1.1rem;
+      top: clamp(1rem, 7vw, 2rem);
       left: 50%;
-      max-width: calc(100% - 2rem);
+      max-width: min(88%, 360px);
       margin: 0;
-      padding: .55rem .85rem;
-      border: 2px solid rgba(255,255,255,.8);
-      border-radius: .9rem;
+      padding: .6rem 1rem;
+      border: 2px solid rgba(255,255,255,.86);
+      border-radius: 999px;
       color: #073b73;
-      background: rgba(255,255,255,.86);
-      box-shadow: 0 7px 18px rgba(24, 85, 119, .14);
-      font-size: .92rem;
-      font-weight: 900;
+      background: rgba(255,255,255,.92);
+      box-shadow: 0 9px 20px rgba(24, 85, 119, .16);
+      font-size: clamp(.92rem, 3.8vw, 1.08rem);
+      font-weight: 950;
       text-align: center;
-      transform: translateX(-50%);
+      transform: translate(-50%, 12px) scale(.9);
+      opacity: 0;
       pointer-events: none;
     }
-    .board-help { position: absolute; z-index: 2; bottom: .9rem; left: 1rem; margin: 0; padding: .42rem .65rem; border-radius: .7rem; color: #17475f; background: rgba(255,255,255,.72); font-size: .82rem; font-weight: 800; pointer-events: none; }
+    .game-message.show { animation: encouragement 2.4s ease-out forwards; }
+    .board-help { position: absolute; z-index: 2; bottom: .9rem; left: 1rem; right: 1rem; width: fit-content; max-width: calc(100% - 2rem); margin: 0; padding: .42rem .65rem; border-radius: .7rem; color: #17475f; background: rgba(255,255,255,.72); font-size: .82rem; font-weight: 800; pointer-events: none; }
 
     .balloon {
       --balloon-color: #ef476f;
@@ -184,12 +186,31 @@
     @keyframes drift { from { transform: translateX(-14vw); } to { transform: translateX(112vw); } }
     @keyframes pop { 40% { opacity: 1; transform: translate3d(-50%, 0, 0) scale(1.2); } 100% { opacity: 0; transform: translate3d(-50%, 0, 0) scale(.05); } }
     @keyframes burst { to { opacity: 0; transform: translate(var(--burst-x), var(--burst-y)) scale(.2); } }
+    @keyframes encouragement { 12% { opacity: 1; transform: translate(-50%, 0) scale(1); } 72% { opacity: 1; transform: translate(-50%, -24px) scale(1.04); } 100% { opacity: 0; transform: translate(-50%, -38px) scale(.94); } }
 
-    @media (max-width: 430px) { .hud { grid-template-columns: 1fr; } .pause-button { width: 100%; } .board { min-height: 490px; } }
+    @media (max-width: 560px) {
+      .app { width: min(100% - 1rem, 960px); padding-top: 1rem; }
+      .brand { margin-bottom: .8rem; }
+      .setup-card, .result-card { margin-top: min(9dvh, 4rem); border-radius: 1.2rem; }
+      .hud { grid-template-columns: 1fr; gap: .6rem; padding: .65rem; }
+      .stats { justify-content: space-between; gap: .3rem .6rem; }
+      .player-label { text-align: center; }
+      .pause-button { width: 100%; min-height: 50px; }
+      .board { min-height: clamp(420px, 61dvh, 560px); border-radius: 1.15rem; }
+      .board-help { font-size: .76rem; }
+    }
+    @media (max-height: 600px) and (orientation: landscape) {
+      .app { min-height: auto; padding: .7rem 0; }
+      .brand { margin-bottom: .55rem; }
+      .brand h1 { font-size: 2rem; }
+      .board { min-height: 310px; }
+      .board-help { bottom: .5rem; }
+    }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
       .cloud { display: none; }
       .balloon { bottom: 43%; transform: translate3d(-50%, 0, 0); }
+      .game-message.show { opacity: 1; transform: translate(-50%, 0); }
     }
   </style>
 </head>
@@ -258,7 +279,8 @@
       const colors = ["#f15b77", "#f6a23a", "#8656d6", "#20a39e", "#e35d9a", "#4f8de8"];
       const faces = [":)", ":D", "^_^", "o_o", ";)"];
       const messages = new Map([[15, "Good job!"], [30, "Great!"], [45, "Final stretch!"]]);
-      const musicNotes = [261.63, 329.63, 392, 329.63, 293.66, 349.23, 440, 349.23];
+      const ambientNotes = [130.81, 146.83, 164.81, 196, 164.81, 146.83];
+      const shimmerNotes = [523.25, 659.25, 587.33, 698.46];
 
       const el = {
         welcome: document.querySelector("#welcome-screen"),
@@ -299,7 +321,9 @@
         audio: null,
         musicId: 0,
         musicStep: 0,
-        musicToken: 0
+        musicToken: 0,
+        messageId: 0,
+        messageToken: 0
       };
 
       function announce(text) {
@@ -356,11 +380,35 @@
         el.timer.textContent = seconds;
       }
 
-      function showMessage(text) { el.message.textContent = text; }
+      function clearFloatingMessage() {
+        clearTimeout(state.messageId);
+        state.messageId = 0;
+        state.messageToken += 1;
+        el.message.classList.remove("show");
+        el.message.textContent = "";
+      }
+
+      function showFloatingMessage(text) {
+        clearTimeout(state.messageId);
+        state.messageToken += 1;
+        const token = state.messageToken;
+        el.message.textContent = text;
+        el.message.classList.remove("show");
+        void el.message.offsetWidth;
+        el.message.classList.add("show");
+        state.messageId = setTimeout(() => {
+          if (token === state.messageToken) {
+            el.message.classList.remove("show");
+            el.message.textContent = "";
+          }
+        }, 2450);
+      }
 
       function elapsedSeconds() { return Math.min(59, Math.floor((ROUND_MS - state.remainingMs) / 1000)); }
-      function speedTier() { return Math.min(5, Math.floor(elapsedSeconds() / 10)); }
-      function riseDuration() { return Math.max(2800, 7300 - speedTier() * 820); }
+      function riseDuration() {
+        const progress = Math.min(1, Math.max(0, (ROUND_MS - state.remainingMs) / ROUND_MS));
+        return Math.round(7200 - progress * 3900);
+      }
 
       function tick() {
         if (state.phase !== "playing") return;
@@ -369,7 +417,8 @@
         messages.forEach((text, second) => {
           if (elapsed >= second && !state.messagesShown.has(second)) {
             state.messagesShown.add(second);
-            showMessage(text);
+            showFloatingMessage(text);
+            playEncouragementChime();
             announce(text);
           }
         });
@@ -410,6 +459,26 @@
         } catch (_) { /* Sound is optional feedback. */ }
       }
 
+      function playEncouragementChime() {
+        try {
+          const audio = getAudio();
+          if (!audio) return;
+          [659.25, 880].forEach((note, index) => {
+            const oscillator = audio.createOscillator();
+            const gain = audio.createGain();
+            const start = audio.currentTime + index * .09;
+            oscillator.type = "sine";
+            oscillator.frequency.setValueAtTime(note, start);
+            gain.gain.setValueAtTime(.0001, start);
+            gain.gain.exponentialRampToValueAtTime(.055, start + .018);
+            gain.gain.exponentialRampToValueAtTime(.0001, start + .3);
+            oscillator.connect(gain).connect(audio.destination);
+            oscillator.start(start);
+            oscillator.stop(start + .32);
+          });
+        } catch (_) { /* Chimes are optional feedback. */ }
+      }
+
       function stopMusic() {
         clearTimeout(state.musicId);
         state.musicId = 0;
@@ -418,27 +487,44 @@
 
       function scheduleMusic() {
         const token = state.musicToken;
-        const playNote = () => {
+        const playAmbientPhrase = () => {
           if (token !== state.musicToken || state.phase !== "playing") return;
           try {
             const audio = getAudio();
             if (!audio) return;
-            const oscillator = audio.createOscillator();
-            const gain = audio.createGain();
-            const note = musicNotes[state.musicStep % musicNotes.length];
+            const now = audio.currentTime;
+            const pad = audio.createOscillator();
+            const padGain = audio.createGain();
+            const padFilter = audio.createBiquadFilter();
+            const bass = ambientNotes[state.musicStep % ambientNotes.length];
+            pad.type = "sine";
+            pad.frequency.setValueAtTime(bass, now);
+            padFilter.type = "lowpass";
+            padFilter.frequency.setValueAtTime(540, now);
+            padGain.gain.setValueAtTime(.0001, now);
+            padGain.gain.linearRampToValueAtTime(.018, now + .3);
+            padGain.gain.exponentialRampToValueAtTime(.0001, now + 2.5);
+            pad.connect(padFilter).connect(padGain).connect(audio.destination);
+            pad.start(now);
+            pad.stop(now + 2.6);
+
+            if (state.musicStep % 2 === 0) {
+              const shimmer = audio.createOscillator();
+              const shimmerGain = audio.createGain();
+              shimmer.type = "triangle";
+              shimmer.frequency.setValueAtTime(shimmerNotes[(state.musicStep / 2) % shimmerNotes.length], now + .62);
+              shimmerGain.gain.setValueAtTime(.0001, now + .62);
+              shimmerGain.gain.linearRampToValueAtTime(.012, now + .72);
+              shimmerGain.gain.exponentialRampToValueAtTime(.0001, now + 1.55);
+              shimmer.connect(shimmerGain).connect(audio.destination);
+              shimmer.start(now + .62);
+              shimmer.stop(now + 1.6);
+            }
             state.musicStep += 1;
-            oscillator.type = "sine";
-            oscillator.frequency.setValueAtTime(note, audio.currentTime);
-            gain.gain.setValueAtTime(.0001, audio.currentTime);
-            gain.gain.linearRampToValueAtTime(.028, audio.currentTime + .03);
-            gain.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + .46);
-            oscillator.connect(gain).connect(audio.destination);
-            oscillator.start();
-            oscillator.stop(audio.currentTime + .48);
           } catch (_) { return; }
-          state.musicId = setTimeout(playNote, 560);
+          state.musicId = setTimeout(playAmbientPhrase, 2600);
         };
-        playNote();
+        playAmbientPhrase();
       }
 
       function createBurst(balloon) {
@@ -501,12 +587,8 @@
         state.score += 1;
         updateHud();
         setTimeout(() => balloon.remove(), 190);
-        if (state.score === 20) {
-          endTurn("Congratulations! You popped 20 balloons!");
-          return;
-        }
         announce(`${state.players[state.active].name} popped a balloon. Score ${state.score}.`);
-        scheduleBalloon(90);
+        scheduleBalloon(Math.max(60, 120 - Math.floor((ROUND_MS - state.remainingMs) / 1000)));
       }
 
       function startTurn() {
@@ -516,7 +598,7 @@
         state.phase = "playing";
         setScreen("game");
         updateHud();
-        showMessage("Pop the balloon — not the sky.");
+        clearFloatingMessage();
         startClock();
         scheduleBalloon(140);
         stopMusic();
@@ -528,6 +610,7 @@
         if (state.phase !== "playing") return;
         clearTimers();
         stopMusic();
+        clearFloatingMessage();
         removeBalloon();
         state.players[state.active].score = state.score;
         announce(`${reason} ${state.players[state.active].name} scored ${state.score}.`);
@@ -582,7 +665,7 @@
           state.balloon?.classList.add("paused");
           el.pause.textContent = "Resume";
           el.pause.setAttribute("aria-pressed", "true");
-          showMessage("Paused");
+          clearFloatingMessage();
           announce("Game paused.");
           return;
         }
@@ -595,7 +678,6 @@
           if (!state.balloon) scheduleBalloon(60);
           stopMusic();
           scheduleMusic();
-          showMessage("Back to popping!");
           announce("Game resumed.");
         }
       }
@@ -603,6 +685,7 @@
       function resetMatch() {
         clearTimers();
         stopMusic();
+        clearFloatingMessage();
         removeBalloon();
         state.phase = "welcome";
         state.active = 0;
