@@ -407,7 +407,7 @@
       function elapsedSeconds() { return Math.min(59, Math.floor((ROUND_MS - state.remainingMs) / 1000)); }
       function riseDuration() {
         const fiveSecondTier = Math.floor(elapsedSeconds() / 5);
-        return Math.max(3600, 5800 - fiveSecondTier * 200);
+        return Math.max(1600, 3000 - fiveSecondTier * 125);
       }
 
       function tick() {
@@ -588,7 +588,7 @@
         updateHud();
         setTimeout(() => balloon.remove(), 190);
         announce(`${state.players[state.active].name} popped a balloon. Score ${state.score}.`);
-        scheduleBalloon(Math.max(90, 220 - Math.floor(elapsedSeconds() / 5) * 15));
+        scheduleBalloon(Math.max(60, 150 - Math.floor(elapsedSeconds() / 5) * 10));
       }
 
       function startTurn() {
@@ -600,7 +600,7 @@
         updateHud();
         clearFloatingMessage();
         startClock();
-        scheduleBalloon(220);
+        scheduleBalloon(150);
         stopMusic();
         scheduleMusic();
         announce(`${state.players[state.active].name}'s 60-second turn has begun.`);

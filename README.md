@@ -10,7 +10,7 @@ There is **no score target**. A player can keep popping beyond 20 balloons. A tu
 - a balloon escapes; or
 - the player clicks the open sky instead of a balloon.
 
-Balloons begin at a moderate, engaging pace and become slightly faster every five seconds. The smooth, balanced increase keeps the challenge building without becoming uncontrollable.
+Balloons begin with a fast 3-second rise time and become noticeably faster every five seconds. The fun, progressive challenge builds toward a 1.6-second late-round pace.
 
 ## How to run it
 
