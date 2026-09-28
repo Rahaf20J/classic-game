@@ -3,28 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="A cheerful 60-second balloon popping game for two players.">
+  <meta name="description" content="A simple two-player Pop the Balloons game.">
   <title>Pop the Balloons</title>
   <style>
     :root {
       --sky: #87CEEB;
-      --ink: #102a43;
-      --navy: #153e75;
-      --surface: rgba(255, 255, 255, .93);
-      --surface-border: rgba(21, 62, 117, .2);
-      --primary: #155eef;
-      --primary-dark: #0d47b5;
-      --sun: #f9c74f;
+      --ink: #0c3559;
+      --blue: #135fd1;
+      --blue-dark: #0c469e;
+      --surface: rgba(255, 255, 255, .94);
+      --line: rgba(13, 75, 126, .2);
       --good: #087443;
-      --danger: #a51d2d;
-      --focus: #091e42;
-      --shadow: 0 12px 0 rgba(18, 77, 122, .14), 0 20px 40px rgba(18, 77, 122, .2);
+      --error: #9f2330;
+      --focus: #061d45;
+      --shadow: 0 16px 42px rgba(21, 92, 135, .2);
     }
 
     * { box-sizing: border-box; }
-
     html { min-height: 100%; background: var(--sky); }
-
     body {
       min-width: 320px;
       min-height: 100dvh;
@@ -32,393 +28,320 @@
       overflow-x: hidden;
       color: var(--ink);
       font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
-      background: linear-gradient(180deg, #87ceeb 0%, #a8dff3 60%, #bbe7ad 100%);
+      background: linear-gradient(180deg, #87ceeb 0%, #a8dff3 72%, #b9e9bc 100%);
     }
-
     button, input { font: inherit; }
     button { cursor: pointer; touch-action: manipulation; }
-    button:disabled { cursor: not-allowed; opacity: .52; }
-    button:focus-visible, input:focus-visible, .balloon:focus-visible, .skip-link:focus-visible {
+    button:focus-visible, input:focus-visible {
       outline: 4px solid var(--focus);
       outline-offset: 3px;
     }
+    button:disabled { cursor: not-allowed; opacity: .48; }
 
-    .skip-link {
+    .screen-reader-only {
       position: absolute;
-      z-index: 100;
-      top: -5rem;
-      left: 1rem;
-      padding: .75rem 1rem;
-      border-radius: .75rem;
-      color: #fff;
-      background: var(--navy);
-    }
-    .skip-link:focus { top: 1rem; }
-
-    .page-shell {
-      width: min(1120px, calc(100% - 1.25rem));
-      margin: 0 auto;
-      padding: 1rem 0 1.4rem;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      clip-path: inset(50%);
     }
 
-    .intro {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: .5rem .25rem 1rem;
-    }
+    .app { width: min(960px, calc(100% - 1.25rem)); min-height: 100dvh; margin: 0 auto; padding: clamp(1rem, 4vw, 2.5rem) 0; }
+    .brand { display: flex; align-items: center; justify-content: center; gap: .75rem; margin-bottom: 1.1rem; text-align: center; }
+    .brand h1 { margin: 0; color: #073b73; font-size: clamp(2.1rem, 7vw, 3.5rem); letter-spacing: -.055em; line-height: 1; text-shadow: 0 2px 0 rgba(255,255,255,.5); }
+    .brand-dot { width: 22px; height: 22px; border-radius: 50%; background: #f8c447; box-shadow: 0 0 0 6px rgba(255,255,255,.46); }
 
-    h1 { margin: 0; color: #073b73; font-size: clamp(2rem, 6vw, 3.5rem); line-height: 1; letter-spacing: -.05em; text-shadow: 0 2px 0 rgba(255,255,255,.45); }
-    .subtitle { margin: .45rem 0 0; max-width: 55ch; font-size: .96rem; font-weight: 650; line-height: 1.45; }
-
-    .sun {
-      flex: 0 0 auto;
-      width: 62px;
-      aspect-ratio: 1;
-      border: 5px solid rgba(255, 255, 255, .62);
-      border-radius: 50%;
-      background: var(--sun);
-      box-shadow: 0 0 0 7px rgba(249, 199, 79, .26), 0 0 35px rgba(255, 241, 178, .8);
-    }
-
-    .top-panel {
-      display: grid;
-      gap: .85rem;
-      padding: .95rem;
-      border: 2px solid var(--surface-border);
-      border-radius: 1.25rem;
+    .setup-card, .result-card {
+      width: min(500px, 100%);
+      margin: min(15vh, 9rem) auto 0;
+      padding: clamp(1.35rem, 6vw, 2.5rem);
+      border: 2px solid var(--line);
+      border-radius: 1.5rem;
       background: var(--surface);
       box-shadow: var(--shadow);
+      text-align: center;
     }
-
-    .panel-heading, .section-title { margin: 0; color: var(--navy); font-size: 1.04rem; }
-    .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
-    .stat {
-      min-width: 0;
-      padding: .72rem .75rem;
-      border: 1px solid #c7e3ef;
-      border-radius: .85rem;
-      background: #f9fdff;
-    }
-    .stat-label { display: block; color: #4a6577; font-size: .74rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
-    .stat-value { display: block; overflow-wrap: anywhere; color: var(--navy); font-size: 1.08rem; font-weight: 900; font-variant-numeric: tabular-nums; }
-    .stat-value.star { color: #875300; }
-
-    .controls {
-      display: grid;
-      gap: .75rem;
-      padding: .9rem;
-      border-radius: 1.05rem;
-      background: rgba(236, 250, 255, .85);
-    }
-    .name-row { display: grid; gap: .4rem; }
-    label { color: var(--navy); font-weight: 800; }
+    .setup-card h2, .result-card h2 { margin: 0; color: #073b73; font-size: clamp(1.45rem, 5vw, 2rem); }
+    .setup-card p, .result-card p { margin: .7rem 0 1.35rem; line-height: 1.5; }
+    .name-form { display: grid; gap: .55rem; text-align: left; }
+    label { color: #17476f; font-size: .96rem; font-weight: 850; }
     input {
+      min-height: 50px;
       width: 100%;
-      min-height: 46px;
-      padding: .7rem .8rem;
-      border: 2px solid #8ab8d1;
-      border-radius: .7rem;
+      padding: .72rem .85rem;
+      border: 2px solid #86b6d0;
+      border-radius: .8rem;
       color: var(--ink);
-      background: white;
+      background: #fff;
     }
-    .field-error { min-height: 1.2em; margin: 0; color: var(--danger); font-size: .85rem; font-weight: 750; }
-
-    .button-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
-    .button-row .wide { grid-column: 1 / -1; }
-    .control-button {
-      min-height: 46px;
-      padding: .6rem .8rem;
+    .form-error { min-height: 1.25em; margin: 0; color: var(--error); font-size: .88rem; font-weight: 800; }
+    .primary-button, .pause-button {
+      min-height: 48px;
       border: 0;
-      border-radius: .72rem;
-      color: white;
+      border-radius: .8rem;
+      color: #fff;
+      background: var(--blue);
+      box-shadow: 0 3px 0 var(--blue-dark);
       font-weight: 900;
-      line-height: 1.1;
-      background: var(--primary);
-      box-shadow: 0 3px 0 var(--primary-dark);
-      transition: transform 160ms ease, filter 160ms ease, box-shadow 160ms ease;
+      transition: transform 150ms ease, filter 150ms ease;
     }
-    .control-button:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
-    .control-button:active:not(:disabled) { box-shadow: 0 1px 0 var(--primary-dark); transform: translateY(2px); }
-    .control-button.secondary { color: #123c5d; background: #e5f5fd; box-shadow: 0 3px 0 #a8d3e7; }
-    .control-button.warning { color: #4c3100; background: #ffd66e; box-shadow: 0 3px 0 #d29a17; }
-    .control-button.pause { color: #fff; background: #6b3fa0; box-shadow: 0 3px 0 #45236e; }
-    .helper { margin: 0; color: #3d5d70; font-size: .83rem; line-height: 1.35; }
+    .primary-button:hover, .pause-button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .primary-button:active, .pause-button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--blue-dark); }
+    .rules { margin-top: 1.15rem !important; color: #436579; font-size: .87rem; font-weight: 700; }
 
-    .game-wrap { position: relative; margin-top: 1rem; }
-    .side-pause {
-      position: absolute;
-      z-index: 8;
-      top: 1rem;
-      right: .8rem;
-      min-width: 105px;
+    .game-screen { display: none; }
+    .game-screen.active { display: block; }
+    .hud {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: .75rem;
+      align-items: center;
+      margin-bottom: .75rem;
+      padding: .75rem;
+      border: 2px solid var(--line);
+      border-radius: 1rem;
+      background: var(--surface);
+      box-shadow: 0 8px 24px rgba(26, 91, 131, .14);
     }
+    .stats { display: flex; flex-wrap: wrap; gap: .35rem .75rem; align-items: baseline; }
+    .player-label { width: 100%; color: #17476f; font-size: .91rem; font-weight: 900; }
+    .stat { color: #1f536f; font-size: .9rem; font-weight: 800; }
+    .stat strong { color: #073b73; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+    .pause-button { min-width: 106px; padding: .65rem .8rem; background: #6f44a5; box-shadow: 0 3px 0 #4b2877; }
 
-    .game-area {
+    .board {
       position: relative;
       isolation: isolate;
-      min-height: clamp(420px, 55dvh, 600px);
+      min-height: clamp(450px, 64dvh, 650px);
       overflow: hidden;
-      border: 3px solid rgba(255, 255, 255, .66);
+      border: 3px solid rgba(255,255,255,.72);
       border-radius: 1.5rem;
-      background: linear-gradient(180deg, rgba(142, 215, 239, .96), rgba(198, 238, 248, .95) 78%, #97d578 78%);
+      background: linear-gradient(180deg, rgba(142, 215, 239, .98), rgba(198, 238, 248, .95) 78%, #9bd77b 78%);
       box-shadow: var(--shadow);
       touch-action: manipulation;
     }
-
-    .cloud { position: absolute; z-index: 0; width: 124px; height: 34px; border-radius: 99px; opacity: .79; background: rgba(255,255,255,.9); pointer-events: none; filter: drop-shadow(0 5px 1px rgba(50, 111, 149, .1)); animation: drift 25s linear infinite; }
+    .cloud { position: absolute; z-index: 0; width: 120px; height: 33px; border-radius: 99px; opacity: .78; background: rgba(255,255,255,.88); pointer-events: none; animation: drift 27s linear infinite; }
     .cloud::before, .cloud::after { position: absolute; bottom: 0; border-radius: 50%; background: inherit; content: ""; }
-    .cloud::before { left: 21px; width: 54px; height: 54px; }
-    .cloud::after { right: 17px; width: 42px; height: 42px; }
-    .cloud-one { top: 18%; left: -10%; animation-duration: 31s; }
-    .cloud-two { top: 46%; left: 57%; width: 90px; transform: scale(.72); animation-duration: 38s; animation-delay: -12s; }
-    .cloud-three { top: 8%; left: 66%; transform: scale(.55); animation-duration: 27s; animation-delay: -8s; }
-
-    .board-instructions {
+    .cloud::before { left: 23px; width: 52px; height: 52px; }
+    .cloud::after { right: 16px; width: 41px; height: 41px; }
+    .cloud-a { top: 14%; left: -10%; }
+    .cloud-b { top: 45%; left: 65%; transform: scale(.68); animation-duration: 37s; animation-delay: -14s; }
+    .cloud-c { top: 7%; left: 67%; transform: scale(.54); animation-duration: 31s; animation-delay: -8s; }
+    .game-message {
       position: absolute;
-      z-index: 2;
-      bottom: 1rem;
-      left: 1rem;
-      max-width: min(68%, 490px);
-      margin: 0;
-      padding: .45rem .7rem;
-      border-radius: .7rem;
-      color: #17455f;
-      background: rgba(255,255,255,.75);
-      font-size: clamp(.76rem, 2.5vw, .9rem);
-      font-weight: 800;
-      pointer-events: none;
-    }
-
-    .message {
-      position: absolute;
-      z-index: 6;
-      top: 1.25rem;
+      z-index: 5;
+      top: 1.1rem;
       left: 50%;
-      max-width: calc(100% - 9rem);
-      padding: .7rem 1rem;
-      border: 2px solid rgba(255,255,255,.76);
-      border-radius: 1rem;
+      max-width: calc(100% - 2rem);
+      margin: 0;
+      padding: .55rem .85rem;
+      border: 2px solid rgba(255,255,255,.8);
+      border-radius: .9rem;
       color: #073b73;
-      background: rgba(255,255,255,.88);
-      box-shadow: 0 9px 22px rgba(15, 76, 113, .18);
-      font-weight: 950;
+      background: rgba(255,255,255,.86);
+      box-shadow: 0 7px 18px rgba(24, 85, 119, .14);
+      font-size: .92rem;
+      font-weight: 900;
       text-align: center;
       transform: translateX(-50%);
       pointer-events: none;
     }
-    .message[hidden] { display: none; }
-    .message.success { color: #065d37; background: #e4ffef; }
-    .message.error { color: #8d1726; background: #fff0f1; }
+    .board-help { position: absolute; z-index: 2; bottom: .9rem; left: 1rem; margin: 0; padding: .42rem .65rem; border-radius: .7rem; color: #17475f; background: rgba(255,255,255,.72); font-size: .82rem; font-weight: 800; pointer-events: none; }
 
     .balloon {
       --balloon-color: #ef476f;
       position: absolute;
       z-index: 3;
-      bottom: -150px;
-      left: 50%;
+      bottom: -155px;
       width: var(--size);
       height: calc(var(--size) * 1.2);
       padding: 0;
       border: 3px solid rgba(255,255,255,.82);
       border-radius: 52% 48% 47% 53% / 52% 52% 45% 46%;
-      color: #183144;
+      color: #173144;
       background: radial-gradient(circle at 29% 23%, rgba(255,255,255,.86) 0 8%, transparent 9%), var(--balloon-color);
-      box-shadow: inset -9px -11px 0 rgba(0,0,0,.1), 0 8px 8px rgba(16, 80, 119, .18);
+      box-shadow: inset -9px -11px 0 rgba(0,0,0,.1), 0 8px 8px rgba(16,80,119,.18);
       transform: translate3d(-50%, 0, 0);
       animation: rise var(--rise-duration) linear forwards;
     }
     .balloon::before { position: absolute; right: 50%; bottom: -10px; width: 0; height: 0; border-top: 13px solid var(--balloon-color); border-right: 7px solid transparent; border-left: 7px solid transparent; content: ""; transform: translateX(50%); }
-    .balloon::after { position: absolute; right: 50%; bottom: -61px; width: 1px; height: 52px; background: rgba(34, 74, 89, .65); content: ""; transform: translateX(50%) rotate(5deg); transform-origin: top; }
-    .balloon:hover { filter: brightness(1.07); }
+    .balloon::after { position: absolute; right: 50%; bottom: -60px; width: 1px; height: 52px; background: rgba(34,74,89,.65); content: ""; transform: translateX(50%) rotate(5deg); transform-origin: top; }
+    .balloon:hover { filter: brightness(1.08); }
     .balloon.paused { animation-play-state: paused; }
-    .balloon.popping { animation: pop 170ms ease-out forwards; pointer-events: none; }
+    .balloon.popping { animation: pop 180ms ease-out forwards; pointer-events: none; }
     .balloon-face { position: relative; top: 36%; display: block; font-family: Arial, sans-serif; font-size: calc(var(--size) * .29); font-weight: 900; letter-spacing: -.12em; pointer-events: none; }
+    .burst { position: absolute; z-index: 4; width: 14px; height: 14px; border-radius: 50%; background: var(--burst-color); pointer-events: none; animation: burst 460ms ease-out forwards; }
 
-    .burst { position: absolute; z-index: 5; width: 15px; height: 15px; border-radius: 50%; background: var(--burst-color); pointer-events: none; animation: burst 480ms ease-out forwards; }
+    .score-list { display: grid; gap: .55rem; margin: 1.2rem 0; text-align: left; }
+    .score-row { display: flex; justify-content: space-between; gap: 1rem; padding: .7rem .85rem; border-radius: .8rem; color: #15435f; background: #effaff; font-weight: 850; }
+    .champion { margin: 1.1rem 0 .55rem !important; padding: 1rem; border: 2px solid #efbd2d; border-radius: 1rem; color: #6b4c00; background: #fff8d9; font-size: 1.1rem; font-weight: 950; }
+    .previous { color: #456779; font-size: .84rem; font-weight: 700; }
 
-    .lives-note { margin: .65rem .2rem 0; color: #173e57; font-size: .85rem; font-weight: 700; text-align: center; }
-    .screen-reader-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
-
+    [hidden] { display: none !important; }
     @keyframes rise { to { transform: translate3d(-50%, calc(-1 * var(--travel)), 0); } }
-    @keyframes drift { from { transform: translateX(-12vw); } to { transform: translateX(112vw); } }
-    @keyframes pop { 35% { opacity: 1; transform: translate3d(-50%, var(--pop-y), 0) scale(1.22); } 100% { opacity: 0; transform: translate3d(-50%, var(--pop-y), 0) scale(.05); } }
+    @keyframes drift { from { transform: translateX(-14vw); } to { transform: translateX(112vw); } }
+    @keyframes pop { 40% { opacity: 1; transform: translate3d(-50%, 0, 0) scale(1.2); } 100% { opacity: 0; transform: translate3d(-50%, 0, 0) scale(.05); } }
     @keyframes burst { to { opacity: 0; transform: translate(var(--burst-x), var(--burst-y)) scale(.2); } }
 
-    @media (min-width: 720px) {
-      .page-shell { width: min(1120px, calc(100% - 2rem)); padding-top: 1.4rem; }
-      .top-panel { grid-template-columns: 1.15fr .95fr; align-items: start; padding: 1.1rem; }
-      .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .controls { grid-column: 1 / -1; grid-template-columns: 1.2fr 1fr; align-items: end; }
-      .name-row { grid-column: 1; }
-      .button-row { grid-column: 2; }
-      .helper { grid-column: 1 / -1; }
-      .side-pause { right: 1.2rem; }
-    }
-
+    @media (max-width: 430px) { .hud { grid-template-columns: 1fr; } .pause-button { width: 100%; } .board { min-height: 490px; } }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
       .cloud { display: none; }
-      .balloon { bottom: 42%; transform: translate3d(-50%, 0, 0); }
+      .balloon { bottom: 43%; transform: translate3d(-50%, 0, 0); }
     }
   </style>
 </head>
 <body>
-  <a class="skip-link" href="#game-controls">Skip to game controls</a>
-  <main class="page-shell">
-    <header class="intro">
-      <div>
-        <h1>Pop the Balloons</h1>
-        <p class="subtitle">Pop 20 happy balloons in 60 seconds. One escape or a click on the sky starts your turn over!</p>
-      </div>
-      <div class="sun" aria-hidden="true"></div>
-    </header>
+  <main class="app">
+    <header class="brand"><span class="brand-dot" aria-hidden="true"></span><h1>Pop the Balloons</h1></header>
 
-    <section class="top-panel" aria-labelledby="leaderboard-title">
-      <div>
-        <h2 class="panel-heading" id="leaderboard-title">Sky leaderboard</h2>
-        <div class="stats" aria-label="Game score and leaderboard">
-          <div class="stat"><span class="stat-label">Playing now</span><strong class="stat-value" id="current-player">Choose a player</strong></div>
-          <div class="stat"><span class="stat-label">Score</span><strong class="stat-value" id="current-score">0 / 20</strong></div>
-          <div class="stat"><span class="stat-label">Time</span><strong class="stat-value" id="time-left">60s</strong></div>
-          <div class="stat"><span class="stat-label">Speed</span><strong class="stat-value" id="speed-level">Breezy</strong></div>
-          <div class="stat"><span class="stat-label">High score</span><strong class="stat-value star" id="high-score">⭐ 12 — Sunny</strong></div>
-        </div>
-      </div>
-
-      <section class="controls" id="game-controls" aria-labelledby="turn-title">
-        <div class="name-row">
-          <label for="player-name" id="turn-title">Player name</label>
-          <input id="player-name" name="player-name" type="text" maxlength="24" autocomplete="off" placeholder="Type a name to play" aria-describedby="name-error">
-          <p class="field-error" id="name-error" role="alert"></p>
-        </div>
-        <div class="button-row">
-          <button class="control-button" id="start-button" type="button">Start game</button>
-          <button class="control-button secondary" id="next-player-button" type="button">Next player</button>
-          <button class="control-button warning wide" id="demo-button" type="button">Demo speed / skip 15s</button>
-          <button class="control-button secondary wide" id="sample-button" type="button">Load example</button>
-        </div>
-        <p class="helper">Use <strong>Tab</strong> then <strong>Enter</strong> or <strong>Space</strong> to pop a balloon. Demo speed skips 15 seconds without adding a score.</p>
-      </section>
+    <section class="setup-card" id="welcome-screen" aria-labelledby="welcome-title">
+      <h2 id="welcome-title">Player 1, what is your name?</h2>
+      <p>Pop as many balloons as you can in 60 seconds. After your turn, Player 2 gets their chance.</p>
+      <form class="name-form" id="welcome-form" novalidate>
+        <label for="player-one-name">Your name</label>
+        <input id="player-one-name" type="text" maxlength="24" autocomplete="off" placeholder="Type your name" aria-describedby="welcome-error">
+        <p class="form-error" id="welcome-error" role="alert"></p>
+        <button class="primary-button" type="submit">Start playing</button>
+      </form>
+      <p class="rules">Click the balloon, not the sky. Use Tab, then Enter or Space, to play with a keyboard.</p>
     </section>
 
-    <section class="game-wrap" aria-labelledby="game-title">
-      <button class="control-button pause side-pause" id="pause-button" type="button" aria-pressed="false" disabled>Pause game</button>
-      <h2 class="screen-reader-status" id="game-title">Balloon play area</h2>
-      <div class="game-area" id="game-area" aria-label="Balloon play area. Pop the visible balloon and do not click the open sky.">
-        <div class="cloud cloud-one" aria-hidden="true"></div>
-        <div class="cloud cloud-two" aria-hidden="true"></div>
-        <div class="cloud cloud-three" aria-hidden="true"></div>
-        <div class="message" id="message" aria-hidden="true">Enter a player name, then start!</div>
-        <p class="board-instructions">Pop the balloon — do not click the open sky.</p>
-      </div>
-      <p class="lives-note">Every player gets a fresh 60-second turn. Your name and high score stay only in this browser.</p>
+    <section class="setup-card" id="handoff-screen" hidden aria-labelledby="handoff-title">
+      <h2 id="handoff-title">Player 2, your turn!</h2>
+      <p id="handoff-copy"></p>
+      <form class="name-form" id="handoff-form" novalidate>
+        <label for="player-two-name">Player 2 name</label>
+        <input id="player-two-name" type="text" maxlength="24" autocomplete="off" placeholder="Type Player 2's name" aria-describedby="handoff-error">
+        <p class="form-error" id="handoff-error" role="alert"></p>
+        <button class="primary-button" type="submit">Start Player 2's turn</button>
+      </form>
     </section>
-    <p class="screen-reader-status" id="live-status" role="status" aria-live="polite" aria-atomic="true"></p>
+
+    <section class="game-screen" id="game-screen" aria-labelledby="playing-name">
+      <div class="hud">
+        <div class="stats">
+          <span class="player-label" id="playing-name">Player 1</span>
+          <span class="stat">Score <strong id="score">0</strong></span>
+          <span class="stat">Time <strong id="timer">60</strong>s</span>
+        </div>
+        <button class="pause-button" id="pause-button" type="button" aria-pressed="false">Pause</button>
+      </div>
+      <div class="board" id="board" aria-label="Balloon play area. Pop the balloon and do not click the open sky.">
+        <div class="cloud cloud-a" aria-hidden="true"></div>
+        <div class="cloud cloud-b" aria-hidden="true"></div>
+        <div class="cloud cloud-c" aria-hidden="true"></div>
+        <p class="game-message" id="game-message">Ready?</p>
+        <p class="board-help">Pop the balloon — not the sky.</p>
+      </div>
+    </section>
+
+    <section class="result-card" id="results-screen" hidden aria-labelledby="results-title">
+      <h2 id="results-title">Match complete!</h2>
+      <div class="score-list" id="final-scores" aria-label="Final scores"></div>
+      <p class="champion" id="champion"></p>
+      <p class="previous" id="previous-champion"></p>
+      <button class="primary-button" id="play-again-button" type="button">Play another match</button>
+    </section>
+
+    <p class="screen-reader-only" id="live-status" role="status" aria-live="polite" aria-atomic="true"></p>
   </main>
 
-  <script src="sample-data/data.js"></script>
   <script>
     (() => {
       "use strict";
 
-      const TARGET_SCORE = 20;
       const ROUND_MS = 60000;
-      const STORAGE_KEY = "pop-the-balloons.high-score.v1";
+      const STORAGE_KEY = "pop-the-balloons.last-champion.v2";
       const colors = ["#f15b77", "#f6a23a", "#8656d6", "#20a39e", "#e35d9a", "#4f8de8"];
       const faces = [":)", ":D", "^_^", "o_o", ";)"];
-      const speedNames = ["Breezy", "Quick", "Zippy", "Swift", "Super", "Rocket"];
-      const milestones = new Map([[15, "Good job!"], [30, "Great!"], [45, "Good job! Keep going!"]]);
+      const messages = new Map([[15, "Good job!"], [30, "Great!"], [45, "Final stretch!"]]);
+      const musicNotes = [261.63, 329.63, 392, 329.63, 293.66, 349.23, 440, 349.23];
 
-      const elements = {
-        name: document.querySelector("#player-name"),
-        nameError: document.querySelector("#name-error"),
-        currentPlayer: document.querySelector("#current-player"),
-        currentScore: document.querySelector("#current-score"),
-        time: document.querySelector("#time-left"),
-        speed: document.querySelector("#speed-level"),
-        highScore: document.querySelector("#high-score"),
-        start: document.querySelector("#start-button"),
-        next: document.querySelector("#next-player-button"),
+      const el = {
+        welcome: document.querySelector("#welcome-screen"),
+        welcomeForm: document.querySelector("#welcome-form"),
+        playerOne: document.querySelector("#player-one-name"),
+        welcomeError: document.querySelector("#welcome-error"),
+        handoff: document.querySelector("#handoff-screen"),
+        handoffForm: document.querySelector("#handoff-form"),
+        handoffCopy: document.querySelector("#handoff-copy"),
+        playerTwo: document.querySelector("#player-two-name"),
+        handoffError: document.querySelector("#handoff-error"),
+        game: document.querySelector("#game-screen"),
+        playingName: document.querySelector("#playing-name"),
+        score: document.querySelector("#score"),
+        timer: document.querySelector("#timer"),
         pause: document.querySelector("#pause-button"),
-        demo: document.querySelector("#demo-button"),
-        sample: document.querySelector("#sample-button"),
-        area: document.querySelector("#game-area"),
-        message: document.querySelector("#message"),
+        board: document.querySelector("#board"),
+        message: document.querySelector("#game-message"),
+        results: document.querySelector("#results-screen"),
+        finalScores: document.querySelector("#final-scores"),
+        champion: document.querySelector("#champion"),
+        previous: document.querySelector("#previous-champion"),
+        playAgain: document.querySelector("#play-again-button"),
         live: document.querySelector("#live-status")
       };
 
-      const sample = window.POP_THE_BALLOONS_SAMPLE_DATA || { highScore: { name: "Sunny", score: 12 }, players: ["Sunny", "Cloud"] };
       const state = {
-        phase: "ready",
-        player: "",
+        phase: "welcome",
+        players: [{ name: "", score: 0 }, { name: "", score: 0 }],
+        active: 0,
         score: 0,
         remainingMs: ROUND_MS,
-        roundEndAt: 0,
+        endsAt: 0,
         timerId: 0,
         spawnId: 0,
         balloon: null,
-        speedTier: 0,
-        milestonesShown: new Set(),
-        highScore: safeHighScore(),
+        messagesShown: new Set(),
         audio: null,
-        resetId: 0
+        musicId: 0,
+        musicStep: 0,
+        musicToken: 0
       };
 
-      function cleanHighScore(value) {
-        if (!value || typeof value.name !== "string" || !Number.isFinite(value.score) || value.score < 0) return null;
-        return { name: value.name.slice(0, 24) || "Sky friend", score: Math.floor(value.score) };
+      function announce(text) {
+        el.live.textContent = "";
+        requestAnimationFrame(() => { el.live.textContent = text; });
       }
 
-      function sampleHighScore() {
-        return cleanHighScore(sample.highScore) || { name: "Sunny", score: 12 };
-      }
-
-      function safeHighScore() {
-        try {
-          const stored = cleanHighScore(JSON.parse(localStorage.getItem(STORAGE_KEY)));
-          return stored || sampleHighScore();
-        } catch (_) {
-          return sampleHighScore();
+      function cleanName(input, error) {
+        const name = input.value.trim().slice(0, 24);
+        if (!name) {
+          error.textContent = "Please enter a name to continue.";
+          input.focus();
+          return "";
         }
+        error.textContent = "";
+        return name;
       }
 
-      function saveHighScore() {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.highScore)); } catch (_) { /* Game still works when storage is unavailable. */ }
+      function safeLastChampion() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          if (saved && typeof saved.name === "string" && Number.isFinite(saved.score)) return saved;
+        } catch (_) { /* Local storage is optional. */ }
+        return null;
       }
 
-      function playerName() { return elements.name.value.trim().slice(0, 24); }
-      function announce(text) { elements.live.textContent = ""; window.requestAnimationFrame(() => { elements.live.textContent = text; }); }
-
-      function showMessage(text, tone = "") {
-        elements.message.textContent = text;
-        elements.message.className = `message ${tone}`.trim();
-        elements.message.hidden = false;
+      function saveChampion(champion) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(champion)); } catch (_) { /* Keep playing if storage is unavailable. */ }
       }
 
-      function hideMessage() { elements.message.hidden = true; }
-
-      function render() {
-        elements.currentPlayer.textContent = state.player || "Choose a player";
-        elements.currentScore.textContent = `${state.score} / ${TARGET_SCORE}`;
-        elements.time.textContent = `${Math.max(0, Math.ceil(state.remainingMs / 1000))}s`;
-        elements.speed.textContent = speedNames[state.speedTier];
-        elements.highScore.textContent = `⭐ ${state.highScore.score} — ${state.highScore.name}`;
-        elements.start.textContent = state.phase === "playing" || state.phase === "paused" ? "Restart turn" : "Start game";
-        elements.pause.disabled = !(state.phase === "playing" || state.phase === "paused");
-        elements.pause.textContent = state.phase === "paused" ? "Resume game" : "Pause game";
-        elements.pause.setAttribute("aria-pressed", String(state.phase === "paused"));
-        elements.demo.disabled = !(state.phase === "playing" || state.phase === "paused");
+      function setScreen(name) {
+        el.welcome.hidden = name !== "welcome";
+        el.handoff.hidden = name !== "handoff";
+        el.results.hidden = name !== "results";
+        el.game.classList.toggle("active", name === "game");
       }
 
-      function clearSchedulers({ keepReset = false } = {}) {
-        window.clearInterval(state.timerId);
-        window.clearTimeout(state.spawnId);
-        if (!keepReset) window.clearTimeout(state.resetId);
+      function clearTimers() {
+        clearInterval(state.timerId);
+        clearTimeout(state.spawnId);
         state.timerId = 0;
         state.spawnId = 0;
-        if (!keepReset) state.resetId = 0;
       }
 
       function removeBalloon() {
@@ -426,103 +349,145 @@
         state.balloon = null;
       }
 
-      function elapsedSeconds() { return Math.min(59, Math.max(0, Math.floor((ROUND_MS - state.remainingMs) / 1000))); }
-      function setSpeedTier() { state.speedTier = Math.min(5, Math.floor(elapsedSeconds() / 10)); }
-      function riseDuration() { return Math.max(2600, 7200 - state.speedTier * 800); }
+      function updateHud() {
+        const seconds = Math.max(0, Math.ceil(state.remainingMs / 1000));
+        el.playingName.textContent = `${state.players[state.active].name}'s turn`;
+        el.score.textContent = state.score;
+        el.timer.textContent = seconds;
+      }
+
+      function showMessage(text) { el.message.textContent = text; }
+
+      function elapsedSeconds() { return Math.min(59, Math.floor((ROUND_MS - state.remainingMs) / 1000)); }
+      function speedTier() { return Math.min(5, Math.floor(elapsedSeconds() / 10)); }
+      function riseDuration() { return Math.max(2800, 7300 - speedTier() * 820); }
 
       function tick() {
         if (state.phase !== "playing") return;
-        state.remainingMs = Math.max(0, state.roundEndAt - Date.now());
-        setSpeedTier();
+        state.remainingMs = Math.max(0, state.endsAt - Date.now());
         const elapsed = elapsedSeconds();
-        milestones.forEach((text, point) => {
-          if (elapsed >= point && !state.milestonesShown.has(point)) {
-            state.milestonesShown.add(point);
-            showMessage(text, "success");
+        messages.forEach((text, second) => {
+          if (elapsed >= second && !state.messagesShown.has(second)) {
+            state.messagesShown.add(second);
+            showMessage(text);
             announce(text);
           }
         });
-        render();
-        if (state.remainingMs <= 0) resetRound("Time is up! Your turn restarts now.");
+        updateHud();
+        if (state.remainingMs <= 0) endTurn("Time is up!");
       }
 
-      function beginClock() {
-        state.roundEndAt = Date.now() + state.remainingMs;
-        window.clearInterval(state.timerId);
-        state.timerId = window.setInterval(tick, 180);
+      function startClock() {
+        state.endsAt = Date.now() + state.remainingMs;
+        clearInterval(state.timerId);
+        state.timerId = setInterval(tick, 180);
         tick();
       }
 
+      function getAudio() {
+        const Context = window.AudioContext || window.webkitAudioContext;
+        if (!Context) return null;
+        state.audio ||= new Context();
+        if (state.audio.state === "suspended") state.audio.resume();
+        return state.audio;
+      }
+
+      function playPop() {
+        try {
+          const audio = getAudio();
+          if (!audio) return;
+          const oscillator = audio.createOscillator();
+          const gain = audio.createGain();
+          oscillator.type = "triangle";
+          oscillator.frequency.setValueAtTime(310, audio.currentTime);
+          oscillator.frequency.exponentialRampToValueAtTime(105, audio.currentTime + .1);
+          gain.gain.setValueAtTime(.0001, audio.currentTime);
+          gain.gain.exponentialRampToValueAtTime(.12, audio.currentTime + .012);
+          gain.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + .12);
+          oscillator.connect(gain).connect(audio.destination);
+          oscillator.start();
+          oscillator.stop(audio.currentTime + .13);
+        } catch (_) { /* Sound is optional feedback. */ }
+      }
+
+      function stopMusic() {
+        clearTimeout(state.musicId);
+        state.musicId = 0;
+        state.musicToken += 1;
+      }
+
+      function scheduleMusic() {
+        const token = state.musicToken;
+        const playNote = () => {
+          if (token !== state.musicToken || state.phase !== "playing") return;
+          try {
+            const audio = getAudio();
+            if (!audio) return;
+            const oscillator = audio.createOscillator();
+            const gain = audio.createGain();
+            const note = musicNotes[state.musicStep % musicNotes.length];
+            state.musicStep += 1;
+            oscillator.type = "sine";
+            oscillator.frequency.setValueAtTime(note, audio.currentTime);
+            gain.gain.setValueAtTime(.0001, audio.currentTime);
+            gain.gain.linearRampToValueAtTime(.028, audio.currentTime + .03);
+            gain.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + .46);
+            oscillator.connect(gain).connect(audio.destination);
+            oscillator.start();
+            oscillator.stop(audio.currentTime + .48);
+          } catch (_) { return; }
+          state.musicId = setTimeout(playNote, 560);
+        };
+        playNote();
+      }
+
       function createBurst(balloon) {
-        const areaBox = elements.area.getBoundingClientRect();
+        const boardBox = el.board.getBoundingClientRect();
         const box = balloon.getBoundingClientRect();
-        const x = box.left - areaBox.left + box.width / 2;
-        const y = box.top - areaBox.top + box.height / 2;
+        const x = box.left - boardBox.left + box.width / 2;
+        const y = box.top - boardBox.top + box.height / 2;
         for (let i = 0; i < 8; i += 1) {
           const dot = document.createElement("span");
-          const angle = (Math.PI * 2 * i) / 8;
+          const angle = i * Math.PI / 4;
           dot.className = "burst";
           dot.style.left = `${x}px`;
           dot.style.top = `${y}px`;
           dot.style.setProperty("--burst-color", colors[i % colors.length]);
-          dot.style.setProperty("--burst-x", `${Math.cos(angle) * (28 + (i % 3) * 12)}px`);
-          dot.style.setProperty("--burst-y", `${Math.sin(angle) * (28 + (i % 4) * 10)}px`);
-          elements.area.append(dot);
-          window.setTimeout(() => dot.remove(), 520);
+          dot.style.setProperty("--burst-x", `${Math.cos(angle) * (28 + (i % 3) * 11)}px`);
+          dot.style.setProperty("--burst-y", `${Math.sin(angle) * (28 + (i % 4) * 9)}px`);
+          el.board.append(dot);
+          setTimeout(() => dot.remove(), 500);
         }
       }
 
       function spawnBalloon() {
         state.spawnId = 0;
         if (state.phase !== "playing" || state.balloon) return;
-        const box = elements.area.getBoundingClientRect();
-        const size = Math.round(Math.max(76, Math.min(118, box.width * .17)));
-        const usableWidth = Math.max(50, box.width - size - 20);
-        const x = 10 + size / 2 + Math.random() * usableWidth;
+        const box = el.board.getBoundingClientRect();
+        const size = Math.round(Math.max(78, Math.min(118, box.width * .17)));
+        const x = 10 + size / 2 + Math.random() * Math.max(32, box.width - size - 20);
         const balloon = document.createElement("button");
-        const color = colors[Math.floor(Math.random() * colors.length)];
         const face = faces[Math.floor(Math.random() * faces.length)];
-        const duration = riseDuration();
         balloon.type = "button";
         balloon.className = "balloon";
-        balloon.setAttribute("aria-label", `Pop a happy balloon with the face ${face}`);
+        balloon.setAttribute("aria-label", `Pop happy balloon ${face}`);
         balloon.style.left = `${x}px`;
         balloon.style.setProperty("--size", `${size}px`);
-        balloon.style.setProperty("--balloon-color", color);
-        balloon.style.setProperty("--rise-duration", `${duration}ms`);
+        balloon.style.setProperty("--balloon-color", colors[Math.floor(Math.random() * colors.length)]);
+        balloon.style.setProperty("--rise-duration", `${riseDuration()}ms`);
         balloon.style.setProperty("--travel", `${box.height + 200}px`);
         balloon.innerHTML = `<span class="balloon-face" aria-hidden="true">${face}</span>`;
         balloon.addEventListener("click", popBalloon);
         balloon.addEventListener("animationend", (event) => {
-          if (event.animationName === "rise" && state.balloon === balloon && state.phase === "playing") resetRound("Oh no — a balloon escaped! Your turn restarts now.");
+          if (event.animationName === "rise" && balloon === state.balloon && state.phase === "playing") endTurn("A balloon escaped!");
         });
         state.balloon = balloon;
-        elements.area.append(balloon);
+        el.board.append(balloon);
       }
 
       function scheduleBalloon(delay = 90) {
-        window.clearTimeout(state.spawnId);
-        state.spawnId = window.setTimeout(spawnBalloon, delay);
-      }
-
-      function makeNoise() {
-        try {
-          const Context = window.AudioContext || window.webkitAudioContext;
-          if (!Context) return;
-          state.audio ||= new Context();
-          if (state.audio.state === "suspended") state.audio.resume();
-          const oscillator = state.audio.createOscillator();
-          const gain = state.audio.createGain();
-          oscillator.type = "triangle";
-          oscillator.frequency.setValueAtTime(250, state.audio.currentTime);
-          oscillator.frequency.exponentialRampToValueAtTime(95, state.audio.currentTime + .1);
-          gain.gain.setValueAtTime(.0001, state.audio.currentTime);
-          gain.gain.exponentialRampToValueAtTime(.16, state.audio.currentTime + .015);
-          gain.gain.exponentialRampToValueAtTime(.0001, state.audio.currentTime + .12);
-          oscillator.connect(gain).connect(state.audio.destination);
-          oscillator.start();
-          oscillator.stop(state.audio.currentTime + .13);
-        } catch (_) { /* Sound is optional feedback. */ }
+        clearTimeout(state.spawnId);
+        state.spawnId = setTimeout(spawnBalloon, delay);
       }
 
       function popBalloon(event) {
@@ -530,154 +495,157 @@
         if (state.phase !== "playing" || event.currentTarget !== state.balloon) return;
         const balloon = state.balloon;
         state.balloon = null;
-        makeNoise();
+        playPop();
         createBurst(balloon);
-        balloon.style.setProperty("--pop-y", getComputedStyle(balloon).transform === "none" ? "0px" : "0px");
         balloon.classList.add("popping");
         state.score += 1;
-        render();
-        if (state.score >= TARGET_SCORE) {
-          window.setTimeout(() => balloon.remove(), 130);
-          winRound();
+        updateHud();
+        setTimeout(() => balloon.remove(), 190);
+        if (state.score === 20) {
+          endTurn("Congratulations! You popped 20 balloons!");
           return;
         }
-        announce(`${state.player} popped a balloon. ${state.score} of ${TARGET_SCORE}.`);
-        window.setTimeout(() => balloon.remove(), 140);
-        scheduleBalloon(85);
+        announce(`${state.players[state.active].name} popped a balloon. Score ${state.score}.`);
+        scheduleBalloon(90);
       }
 
-      function validateName() {
-        const name = playerName();
-        if (!name) {
-          elements.nameError.textContent = "Type a player name first.";
-          elements.name.focus();
-          return "";
-        }
-        elements.nameError.textContent = "";
-        return name;
-      }
-
-      function startTurn(name = validateName()) {
-        if (!name) return;
-        clearSchedulers();
-        removeBalloon();
-        state.player = name;
+      function startTurn() {
         state.score = 0;
         state.remainingMs = ROUND_MS;
-        state.speedTier = 0;
-        state.milestonesShown = new Set();
+        state.messagesShown = new Set();
         state.phase = "playing";
-        hideMessage();
-        beginClock();
-        scheduleBalloon(150);
-        render();
-        announce(`${state.player}'s turn has started. Pop ${TARGET_SCORE} balloons in 60 seconds.`);
+        setScreen("game");
+        updateHud();
+        showMessage("Pop the balloon — not the sky.");
+        startClock();
+        scheduleBalloon(140);
+        stopMusic();
+        scheduleMusic();
+        announce(`${state.players[state.active].name}'s 60-second turn has begun.`);
       }
 
-      function resetRound(reason) {
+      function endTurn(reason) {
         if (state.phase !== "playing") return;
-        clearSchedulers();
+        clearTimers();
+        stopMusic();
         removeBalloon();
-        state.score = 0;
-        state.remainingMs = ROUND_MS;
-        state.speedTier = 0;
-        state.milestonesShown = new Set();
-        showMessage(reason, "error");
-        render();
-        announce(reason);
-        state.resetId = window.setTimeout(() => {
-          if (state.player && state.phase === "playing") {
-            state.resetId = 0;
-            hideMessage();
-            beginClock();
-            scheduleBalloon(160);
-            render();
-          }
-        }, 980);
+        state.players[state.active].score = state.score;
+        announce(`${reason} ${state.players[state.active].name} scored ${state.score}.`);
+        if (state.active === 0) {
+          state.phase = "handoff";
+          el.handoffCopy.textContent = `${state.players[0].name} scored ${state.players[0].score}. Now Player 2 gets one 60-second turn.`;
+          setScreen("handoff");
+          requestAnimationFrame(() => el.playerTwo.focus());
+          return;
+        }
+        showResults();
       }
 
-      function winRound() {
-        clearSchedulers();
-        state.phase = "won";
-        state.remainingMs = Math.max(0, state.remainingMs);
-        if (state.score > state.highScore.score) {
-          state.highScore = { name: state.player, score: state.score };
-          saveHighScore();
+      function showResults() {
+        state.phase = "results";
+        const [one, two] = state.players;
+        const previousChampion = safeLastChampion();
+        el.finalScores.replaceChildren();
+        for (const player of state.players) {
+          const row = document.createElement("div");
+          row.className = "score-row";
+          const name = document.createElement("span");
+          const score = document.createElement("strong");
+          name.textContent = player.name;
+          score.textContent = `${player.score} points`;
+          row.append(name, score);
+          el.finalScores.append(row);
         }
-        showMessage("Congratulations! You popped 20 balloons!", "success");
-        render();
-        announce(`Congratulations, ${state.player}! You won with ${TARGET_SCORE} balloons. Enter the next player's name to compete.`);
+        let matchRecord;
+        if (one.score === two.score) {
+          el.champion.textContent = `⭐ Co-champions: ${one.name} and ${two.name} — ${one.score} points`;
+          matchRecord = { name: `${one.name} and ${two.name}`, score: one.score };
+        } else {
+          const winner = one.score > two.score ? one : two;
+          el.champion.textContent = `⭐ Champion: ${winner.name} — ${winner.score} points`;
+          matchRecord = { name: winner.name, score: winner.score };
+        }
+        if (!previousChampion || matchRecord.score > previousChampion.score) saveChampion(matchRecord);
+        const currentHighScore = safeLastChampion();
+        el.previous.textContent = currentHighScore ? `All-time high score: ${currentHighScore.name} — ${currentHighScore.score} points` : "No champion yet.";
+        setScreen("results");
+        requestAnimationFrame(() => el.playAgain.focus());
+        announce(el.champion.textContent);
       }
 
       function pauseOrResume() {
         if (state.phase === "playing") {
           tick();
           state.phase = "paused";
-          window.clearInterval(state.timerId);
-          window.clearTimeout(state.spawnId);
-          state.timerId = 0;
-          state.spawnId = 0;
+          clearTimers();
+          stopMusic();
           state.balloon?.classList.add("paused");
-          showMessage(`Paused — ${state.score} of ${TARGET_SCORE}, ${Math.ceil(state.remainingMs / 1000)} seconds left.`);
-          render();
-          announce("Game paused. Your progress is saved on this screen.");
+          el.pause.textContent = "Resume";
+          el.pause.setAttribute("aria-pressed", "true");
+          showMessage("Paused");
+          announce("Game paused.");
           return;
         }
         if (state.phase === "paused") {
           state.phase = "playing";
           state.balloon?.classList.remove("paused");
-          hideMessage();
-          beginClock();
+          el.pause.textContent = "Pause";
+          el.pause.setAttribute("aria-pressed", "false");
+          startClock();
           if (!state.balloon) scheduleBalloon(60);
-          render();
+          stopMusic();
+          scheduleMusic();
+          showMessage("Back to popping!");
           announce("Game resumed.");
         }
       }
 
-      function demoSkip() {
-        if (state.phase === "paused") pauseOrResume();
-        if (state.phase !== "playing") {
-          showMessage("Start a turn first, then use demo speed.");
-          announce("Start a turn before using demo speed.");
-          return;
-        }
-        state.remainingMs = Math.max(1000, state.remainingMs - 15000);
-        state.roundEndAt = Date.now() + state.remainingMs;
-        state.balloon?.remove();
-        state.balloon = null;
-        tick();
-        scheduleBalloon(65);
-        showMessage("Demo speed: skipped 15 seconds!");
-        announce("Demo speed skipped 15 seconds without changing your score.");
+      function resetMatch() {
+        clearTimers();
+        stopMusic();
+        removeBalloon();
+        state.phase = "welcome";
+        state.active = 0;
+        state.score = 0;
+        state.remainingMs = ROUND_MS;
+        state.players = [{ name: "", score: 0 }, { name: "", score: 0 }];
+        el.playerOne.value = "";
+        el.playerTwo.value = "";
+        el.pause.textContent = "Pause";
+        el.pause.setAttribute("aria-pressed", "false");
+        setScreen("welcome");
+        requestAnimationFrame(() => el.playerOne.focus());
       }
 
-      function loadExample() {
-        state.highScore = sampleHighScore();
-        saveHighScore();
-        if (!state.player) elements.name.value = (sample.players && sample.players[0]) || "Sunny";
-        render();
-        showMessage("Made-up example score loaded in this browser.", "success");
-        announce("Made-up example leaderboard loaded in this browser.");
-      }
-
-      elements.start.addEventListener("click", () => startTurn());
-      elements.next.addEventListener("click", () => {
-        const name = validateName();
+      el.welcomeForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const name = cleanName(el.playerOne, el.welcomeError);
         if (!name) return;
-        startTurn(name);
+        state.players[0].name = name;
+        getAudio();
+        startTurn();
       });
-      elements.pause.addEventListener("click", pauseOrResume);
-      elements.demo.addEventListener("click", demoSkip);
-      elements.sample.addEventListener("click", loadExample);
-      elements.name.addEventListener("input", () => { elements.nameError.textContent = ""; });
-      elements.name.addEventListener("keydown", (event) => { if (event.key === "Enter") startTurn(); });
-      elements.area.addEventListener("click", (event) => {
-        if (state.phase === "playing" && !event.target.closest(".balloon")) resetRound("Oops — you clicked the sky! Your turn restarts now.");
+
+      el.handoffForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const name = cleanName(el.playerTwo, el.handoffError);
+        if (!name) return;
+        state.players[1].name = name;
+        state.active = 1;
+        getAudio();
+        startTurn();
+      });
+
+      el.pause.addEventListener("click", pauseOrResume);
+      el.playAgain.addEventListener("click", resetMatch);
+      el.playerOne.addEventListener("input", () => { el.welcomeError.textContent = ""; });
+      el.playerTwo.addEventListener("input", () => { el.handoffError.textContent = ""; });
+      el.board.addEventListener("click", (event) => {
+        if (state.phase === "playing" && !event.target.closest(".balloon")) endTurn("You clicked the sky!");
       });
       document.addEventListener("visibilitychange", () => { if (document.hidden && state.phase === "playing") pauseOrResume(); });
-
-      render();
-      showMessage("Enter a player name, then start!");
+      window.addEventListener("pagehide", stopMusic);
+      requestAnimationFrame(() => el.playerOne.focus());
     })();
   </script>
 </body>
